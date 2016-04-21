@@ -1,9 +1,10 @@
-package com.miriamlaurel.jcarb.fetcher;
+package com.miriamlaurel.jcarb.client;
 
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
+import com.miriamlaurel.jcarb.common.Lifecycle;
 import com.miriamlaurel.jcarb.model.*;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
@@ -12,7 +13,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-public class CoinbaseApi {
+public class CoinbaseApi implements Lifecycle, SyncApi {
 
     private static final String ENDPOINT = "https://api.exchange.coinbase.com";
     private static final int BOOK_LEVEL = 2;
@@ -20,7 +21,21 @@ public class CoinbaseApi {
     public CoinbaseApi() {
     }
 
-    public OrderBook getOrderBook(Instrument instrument) throws IOException {
+    @Override
+    public void start() {
+        // Don't need to do anything
+    }
+
+    @Override
+    public void stop() {
+        try {
+            Unirest.shutdown();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public OrderBook getOrderBook(Instrument instrument) {
         try {
             OrderBook book = new OrderBook(instrument);
             String ticker = instrumentToTicker(instrument);
@@ -41,7 +56,7 @@ public class CoinbaseApi {
             }
             return book;
         } catch (UnirestException e) {
-            throw new IOException(e);
+            throw new RuntimeException(e);
         }
     }
 

@@ -89,8 +89,33 @@ public class OrderBook {
         return getOrdersByPrice(side, getBestPrice(side));
     }
 
+    public synchronized void replaceParty(Party party, OrderBook theirBook) {
+        for (OrderKey theirKey : theirBook.byKey.keySet()) {
+            if (!party.equals(theirKey.getParty())) {
+                throw new IllegalArgumentException(String.format("Parties don't match: required %s, got %s",
+                        party, theirKey.getParty()));
+            }
+            removeByParty(party);
+            for (Order order : theirBook.byKey.values()) {
+                addOrder(order);
+            }
+        }
+    }
+
+    public synchronized void removeByParty(Party party) {
+        Set<OrderKey> toRemove = new HashSet<>();
+        for (OrderKey key : byKey.keySet()) {
+            if (party.equals(key.getParty())) {
+                toRemove.add(key);
+            }
+        }
+        for (OrderKey key : toRemove) {
+            removeOrder(key);
+        }
+    }
+
     @Override
-    public String toString() {
+    public synchronized String toString() {
         StringBuilder builder = new StringBuilder();
         for (BigDecimal price : bids.descendingKeySet()) {
             for (Order order : bids.get(price).values()) {
@@ -99,7 +124,7 @@ public class OrderBook {
             }
         }
         builder.append("↑↑↑ BIDS ↑↑↑\n");
-        builder.append("-------------\n");
+        builder.append(String.format("-- (%s) --\n", getSpread().stripTrailingZeros()));
         builder.append("↓↓↓ ASKS ↓↓↓\n");
         for (BigDecimal price : asks.navigableKeySet()) {
             for (Order order : asks.get(price).values()) {
