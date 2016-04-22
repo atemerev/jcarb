@@ -11,6 +11,8 @@ public class Party {
     public static final Party BITFINEX = new Party("Bitfinex");
     public static final Party GATECOIN = new Party("Gatecoin");
 
+    public static final Party AGGREGATE = new Party("*");
+
     private final String code;
 
     public Party(@NotNull String code) {

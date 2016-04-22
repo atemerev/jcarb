@@ -1,6 +1,7 @@
 package com.miriamlaurel.jcarb.client;
 
 import com.miriamlaurel.jcarb.common.Mortal;
+import com.miriamlaurel.jcarb.common.StoppedException;
 import com.miriamlaurel.jcarb.model.asset.Instrument;
 import com.miriamlaurel.jcarb.model.order.OrderBook;
 
@@ -32,7 +33,7 @@ public abstract class PollingTradingApi implements TradingApi, Mortal {
                             orderBookListener.accept(book);
                         }
                         if (exception != null) {
-                            exception.printStackTrace(); // todo log
+                            onTermination(exception);
                         }
                     }));
             CompletableFuture[] futureArray = futures.toArray(CompletableFuture[]::new);
@@ -45,6 +46,7 @@ public abstract class PollingTradingApi implements TradingApi, Mortal {
     @Override
     public synchronized void stop() {
         scheduler.shutdown();
+        // Don't forget to call onTermination when override!
     }
 
     protected abstract OrderBook getOrderBook(Instrument instrument);

@@ -4,6 +4,7 @@ import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
+import com.miriamlaurel.jcarb.common.StoppedException;
 import com.miriamlaurel.jcarb.model.asset.Instrument;
 import com.miriamlaurel.jcarb.model.order.*;
 import com.miriamlaurel.jcarb.model.trading.Exec;
@@ -34,6 +35,7 @@ public class CoinbaseApi extends PollingTradingApi {
         super.stop();
         try {
             Unirest.shutdown();
+            onTermination(new StoppedException(getName() + " is stopped"));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

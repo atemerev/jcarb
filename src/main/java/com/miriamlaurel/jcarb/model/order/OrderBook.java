@@ -77,6 +77,20 @@ public class OrderBook {
     }
 
     @NotNull
+    public Order getOrderByPriceAggregated(@NotNull Side side, @NotNull BigDecimal price) {
+        Set<Order> orders = getBest(side);
+        BigDecimal totalAmount = BigDecimal.ZERO;
+        StringJoiner sj = new StringJoiner(":");
+        for (Order order : orders) {
+            totalAmount = totalAmount.add(order.getAmount());
+            sj.add(order.getKey().getOrderId());
+        }
+        OrderKey key = new OrderKey(sj.toString(), Party.AGGREGATE, instrument, side);
+        return new Order(key, totalAmount, price);
+    }
+
+
+    @NotNull
     public synchronized BigDecimal getBestPrice(@NotNull Side side) {
         SortedMap<BigDecimal, Map<OrderKey, Order>> line = side == Side.BID ? bids : asks;
         if (line.isEmpty()) {
@@ -88,6 +102,11 @@ public class OrderBook {
     @NotNull
     public synchronized Set<Order> getBest(@NotNull Side side) {
         return getOrdersByPrice(side, getBestPrice(side));
+    }
+
+    @NotNull
+    public synchronized Order getBestAggregated(@NotNull Side side) {
+        return getOrderByPriceAggregated(side, getBestPrice(side));
     }
 
     public synchronized void replaceParty(Party party, OrderBook theirBook) {
@@ -115,7 +134,9 @@ public class OrderBook {
         }
     }
 
-    public @NotNull Party getSingleParty() {
+    public
+    @NotNull
+    Party getSingleParty() {
         if (byKey.isEmpty()) {
             throw new IllegalStateException("Can't get party for an empty order book");
         }
