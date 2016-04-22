@@ -1,4 +1,4 @@
-package com.miriamlaurel.jcarb.model;
+package com.miriamlaurel.jcarb.model.asset;
 
 import org.jetbrains.annotations.NotNull;
 

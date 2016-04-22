@@ -4,30 +4,34 @@ import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
-import com.miriamlaurel.jcarb.common.Lifecycle;
-import com.miriamlaurel.jcarb.model.*;
+import com.miriamlaurel.jcarb.model.asset.Instrument;
+import com.miriamlaurel.jcarb.model.order.*;
+import com.miriamlaurel.jcarb.model.trading.Exec;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.function.Consumer;
 
-public class CoinbaseApi implements Lifecycle, SyncApi {
+public class CoinbaseApi extends PollingTradingApi {
 
     private static final String ENDPOINT = "https://api.exchange.coinbase.com";
     private static final int BOOK_LEVEL = 2;
 
-    public CoinbaseApi() {
+    public CoinbaseApi(Consumer<OrderBook> orderBookListener, int pollIntervalSeconds) {
+        super(orderBookListener, pollIntervalSeconds);
     }
 
     @Override
-    public void start() {
-        // Don't need to do anything
+    public String getName() {
+        return "Coinbase";
     }
 
     @Override
     public void stop() {
+        super.stop();
         try {
             Unirest.shutdown();
         } catch (IOException e) {
@@ -35,6 +39,7 @@ public class CoinbaseApi implements Lifecycle, SyncApi {
         }
     }
 
+    @NotNull
     public OrderBook getOrderBook(Instrument instrument) {
         try {
             OrderBook book = new OrderBook(instrument);
@@ -58,6 +63,11 @@ public class CoinbaseApi implements Lifecycle, SyncApi {
         } catch (UnirestException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public void trade(Consumer<Exec> executionResponseListener) {
+        throw new NoSuchMethodError("Not implemented");
     }
 
     @NotNull

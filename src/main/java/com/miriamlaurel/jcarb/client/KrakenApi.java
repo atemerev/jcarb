@@ -4,8 +4,9 @@ import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
-import com.miriamlaurel.jcarb.common.Lifecycle;
-import com.miriamlaurel.jcarb.model.*;
+import com.miriamlaurel.jcarb.model.asset.Instrument;
+import com.miriamlaurel.jcarb.model.order.*;
+import com.miriamlaurel.jcarb.model.trading.Exec;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -15,8 +16,11 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 
-public class KrakenApi implements Lifecycle, SyncApi {
+public class KrakenApi extends PollingTradingApi {
+
+    private static final int TASK_THREAD_POOL_SIZE = 16;
 
     private static final String ENDPOINT = "https://api.kraken.com/0/public/Depth";
     private static final Map<String, String> assetMap = new HashMap<>();
@@ -30,16 +34,18 @@ public class KrakenApi implements Lifecycle, SyncApi {
         assetMap.put("NMC", "XNMC");
     }
 
-    public KrakenApi() {
+    public KrakenApi(Consumer<OrderBook> orderBookListener, int pollIntervalSeconds) {
+        super(orderBookListener, pollIntervalSeconds);
     }
 
     @Override
-    public void start() {
-        // Don't need to do anything
+    public String getName() {
+        return "Kraken";
     }
 
     @Override
     public void stop() {
+        super.stop();
         try {
             Unirest.shutdown();
         } catch (IOException e) {
@@ -47,7 +53,13 @@ public class KrakenApi implements Lifecycle, SyncApi {
         }
     }
 
-    public OrderBook getOrderBook(Instrument instrument) {
+    @Override
+    public void trade(Consumer<Exec> executionResponseListener) {
+        throw new NoSuchMethodError("Not implemented");
+    }
+
+    @Override
+    protected OrderBook getOrderBook(Instrument instrument) {
         try {
             OrderBook book = new OrderBook(instrument);
             String ticker = instrumentToTicker(instrument);

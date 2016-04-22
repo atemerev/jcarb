@@ -1,6 +1,5 @@
 package com.miriamlaurel.jcarb.common;
 
-public interface Lifecycle {
-    void start();
+public interface Mortal {
     void stop();
 }

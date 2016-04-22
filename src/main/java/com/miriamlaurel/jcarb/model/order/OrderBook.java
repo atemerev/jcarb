@@ -1,5 +1,6 @@
-package com.miriamlaurel.jcarb.model;
+package com.miriamlaurel.jcarb.model.order;
 
+import com.miriamlaurel.jcarb.model.asset.Instrument;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -112,6 +113,28 @@ public class OrderBook {
         for (OrderKey key : toRemove) {
             removeOrder(key);
         }
+    }
+
+    public @NotNull Party getSingleParty() {
+        if (byKey.isEmpty()) {
+            throw new IllegalStateException("Can't get party for an empty order book");
+        }
+        Party result = null;
+        for (OrderKey key : byKey.keySet()) {
+            if (result == null) {
+                result = key.getParty();
+            } else {
+                if (!result.equals(key.getParty())) {
+                    throw new IllegalStateException("Multiple parties detected in this order book");
+                }
+            }
+        }
+        assert result != null;
+        return result;
+    }
+
+    public synchronized boolean isEmpty() {
+        return byKey.isEmpty();
     }
 
     @Override

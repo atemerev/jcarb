@@ -1,4 +1,4 @@
-package com.miriamlaurel.jcarb.model;
+package com.miriamlaurel.jcarb.model.asset;
 
 public interface Asset {
 

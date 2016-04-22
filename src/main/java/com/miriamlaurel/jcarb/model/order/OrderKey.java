@@ -1,5 +1,6 @@
-package com.miriamlaurel.jcarb.model;
+package com.miriamlaurel.jcarb.model.order;
 
+import com.miriamlaurel.jcarb.model.asset.Instrument;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
