@@ -1,13 +1,16 @@
 package com.miriamlaurel.jcarb.model.order;
 
+import com.miriamlaurel.jcarb.common.JsonSerializable;
 import com.miriamlaurel.jcarb.model.asset.Instrument;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.math.BigDecimal;
 import java.util.*;
 
-public class OrderBook {
+public class OrderBook implements JsonSerializable {
 
     private final Instrument instrument;
     private final TreeMap<BigDecimal, Map<OrderKey, Order>> bids = new TreeMap<>(Comparator.reverseOrder());
@@ -206,5 +209,34 @@ public class OrderBook {
         BigDecimal bestBid = getBestPrice(Side.BID);
         BigDecimal bestAsk = getBestPrice(Side.ASK);
         return bestAsk.subtract(bestBid);
+    }
+
+    @Override
+    public synchronized JSONObject toJson() {
+        JSONObject result = new JSONObject();
+        JSONArray bidArray = new JSONArray();
+        JSONArray askArray = new JSONArray();
+        for (BigDecimal price : bids.navigableKeySet()) {
+            for (Order order : bids.get(price).values()) {
+                bidArray.put(orderToJson(order));
+            }
+        }
+        for (BigDecimal price : asks.navigableKeySet()) {
+            for (Order order : asks.get(price).values()) {
+                askArray.put(orderToJson(order));
+            }
+        }
+        result.put("type", "book");
+        result.put("bids", bidArray);
+        result.put("asks", askArray);
+        return result;
+    }
+
+    private JSONArray orderToJson(Order order) {
+        JSONArray result = new JSONArray();
+        result.put(order.getKey().getParty());
+        result.put(order.getPrice().toString());
+        result.put(order.getAmount().toString());
+        return result;
     }
 }
