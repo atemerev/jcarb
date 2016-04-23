@@ -105,6 +105,27 @@ public class OrderBook {
     }
 
     @NotNull
+    public synchronized Set<Order> getBest(@NotNull Side side, @NotNull Party party) {
+        TreeMap<BigDecimal, Map<OrderKey, Order>> line = side == Side.BID ? bids : asks;
+        if (line.isEmpty()) {
+            throw new IllegalStateException("No prices found for side: " + side);
+        }
+        NavigableSet<BigDecimal> prices = line.navigableKeySet();
+        Set<Order> result = new LinkedHashSet<>();
+        for (BigDecimal price : prices) {
+            Map<OrderKey, Order> orders = line.get(price);
+            for (Order order : orders.values()) {
+                if (party.equals(order.getKey().getParty())) {
+                    result.add(order);
+                }
+            }
+            if (!result.isEmpty()) {
+                break;
+            }
+        }
+        return result;
+    }
+    @NotNull
     public synchronized Order getBestAggregated(@NotNull Side side) {
         return getOrderByPriceAggregated(side, getBestPrice(side));
     }
