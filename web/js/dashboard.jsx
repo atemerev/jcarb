@@ -7,6 +7,22 @@ var book = {
 var Dashboard = React.createClass({
     displayName: 'CommentBox',
     render: function () {
+        var bidMarks = [];
+        var askMarks = [];
+        for (var i = 0; i < Math.min(book.bids.length, 100); i++) {
+            var order = book.bids[i];
+            var size = Math.min(15, order[2] * 5);
+            if (order[0] === "Kraken") {
+                bidMarks.push(<line x1={-i * 3} y1={-size} x2={-i * 3} y2={size} className="bids"/>);
+            }
+        }
+        for (i = 0; i < Math.min(book.asks.length, 100); i++) {
+            order = book.asks[i];
+            size = Math.min(15, order[2] * 5);
+            if (order[0] === "Kraken") {
+                askMarks.push(<line x1={i * 3} y1={-size} x2={i * 3} y2={size} className="asks"/>);
+            }
+        }
         return (
 
             <svg id="main" viewBox="0 0 1000 700">
@@ -37,8 +53,8 @@ var Dashboard = React.createClass({
                         <line x1="40" y1="0" x2="40" y2="580" className="arb-ok"/>
                     </g>
                     <g id="order-book" transform="translate(0, 45)" className="orders">
-                        <line x1="-2" y1="-8.3" x2="-2" y2="8.3" className="bids"/>
-                        <line x1="-7" y1="-11" x2="-7" y2="11" className="bids"/>
+                        {bidMarks}
+                        {askMarks}
                     </g>
                 </g>
                 <g className="legend" transform="translate(50,40)">
