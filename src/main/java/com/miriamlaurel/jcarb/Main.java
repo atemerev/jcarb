@@ -45,6 +45,7 @@ public class Main {
             }
             String askS = joiner.toString();
             System.out.println(globalBook.getSpread() + " | " + bidS + " | " + askS);
+//            System.out.println(globalBook.toJson().toString());
             if (portfolio.isEmpty() && globalBook.getSpread().compareTo(new BigDecimal(-0.5)) < 0) {
                 Order bestBid = globalBook.getBestAggregated(Side.BID);
                 Order bestAsk = globalBook.getBestAggregated(Side.ASK);

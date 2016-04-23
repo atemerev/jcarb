@@ -1,0 +1,63 @@
+html, body { margin:0; padding:0; overflow:hidden; background-color: black;}
+svg { position:fixed; top:0; left:0; height:100%; width:100% }
+body {
+    margin: 0;
+
+}
+svg#main {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+}
+
+.border {
+    stroke: #333333;
+    stroke-width: 4px;
+}
+
+.arb-fill {
+    stroke: none;
+    fill: darkgreen;
+    fill-opacity: 0.2;
+}
+
+.table-line {
+    stroke: #333333;
+    stroke-width: 1px;
+}
+.arb-ok {
+    stroke: darkgreen;
+    stroke-width: 1px;
+}
+.legend-venue {
+    font-family: 'Cousine', monospace;
+    font-size: 13px;
+    font-weight: 200;
+    stroke: none;
+    fill: #777777;
+    text-transform: uppercase;
+    text-anchor: end;
+}
+.legend {
+    font-family: 'Cousine', monospace;
+    font-size: 12px;
+    fill: #777777;
+    stroke: none;
+}
+.legend-time {
+    text-anchor: end;
+}
+.legend-arb-size {
+    font-size: 10px;
+    fill: lightgreen;
+    text-anchor: middle;
+}
+.orders {
+    stroke-width: 2px;
+}
+.bids {
+    stroke: red;
+}
+.asks {
+    stroke: green;
+}

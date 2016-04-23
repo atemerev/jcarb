@@ -27,18 +27,24 @@ public abstract class PollingTradingApi implements TradingApi, Mortal {
     public PollingTradingApi(Consumer<OrderBook> orderBookListener, int pollIntervalSeconds) {
         this.orderBookListener = orderBookListener;
         this.fetchMarketDataTask = () -> {
-            Stream<CompletableFuture<?>> futures = subscriptions.stream()
-                    .map(instrument -> getOrderBookAsync(instrument).whenComplete((book, exception) -> {
-                        if (book != null) {
-                            orderBookListener.accept(book);
-                        }
-                        if (exception != null) {
-                            onTermination(exception);
-                        }
-                    }));
-            CompletableFuture[] futureArray = futures.toArray(CompletableFuture[]::new);
-            CompletableFuture.allOf(futureArray).thenRun(
-                    () -> scheduler.schedule(fetchMarketDataTask, pollIntervalSeconds, TimeUnit.SECONDS));
+            try {
+                Stream<CompletableFuture<?>> futures = subscriptions.stream()
+                        .map(instrument -> getOrderBookAsync(instrument).whenComplete((book, exception) -> {
+                            if (book != null) {
+                                orderBookListener.accept(book);
+                            }
+                            if (exception != null) {
+                                onTermination(exception);
+                            }
+                        }));
+                CompletableFuture[] futureArray = futures.toArray(CompletableFuture[]::new);
+                CompletableFuture.allOf(futureArray).thenRun(
+                        () -> scheduler.schedule(fetchMarketDataTask, pollIntervalSeconds, TimeUnit.SECONDS));
+            } catch (Throwable t) {
+                t.printStackTrace();
+                // todo delegate restarts to monitoring
+                scheduler.schedule(fetchMarketDataTask, pollIntervalSeconds, TimeUnit.SECONDS);
+            }
         };
         scheduler.schedule(fetchMarketDataTask, pollIntervalSeconds, TimeUnit.SECONDS);
     }
