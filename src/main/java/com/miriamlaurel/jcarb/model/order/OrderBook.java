@@ -81,11 +81,14 @@ public class OrderBook {
         Set<Order> orders = getBest(side);
         BigDecimal totalAmount = BigDecimal.ZERO;
         StringJoiner sj = new StringJoiner(":");
+        // todo aggregate parties correctly!
+        Party party = null;
         for (Order order : orders) {
             totalAmount = totalAmount.add(order.getAmount());
             sj.add(order.getKey().getOrderId());
+            party = order.getKey().getParty();
         }
-        OrderKey key = new OrderKey(sj.toString(), Party.AGGREGATE, instrument, side);
+        OrderKey key = new OrderKey(sj.toString(), party, instrument, side);
         return new Order(key, totalAmount, price);
     }
 
@@ -105,25 +108,21 @@ public class OrderBook {
     }
 
     @NotNull
-    public synchronized Set<Order> getBest(@NotNull Side side, @NotNull Party party) {
+    public synchronized BigDecimal getBestPrice(@NotNull Side side, @NotNull Party party) {
         TreeMap<BigDecimal, Map<OrderKey, Order>> line = side == Side.BID ? bids : asks;
         if (line.isEmpty()) {
             throw new IllegalStateException("No prices found for side: " + side);
         }
         NavigableSet<BigDecimal> prices = line.navigableKeySet();
-        Set<Order> result = new LinkedHashSet<>();
         for (BigDecimal price : prices) {
             Map<OrderKey, Order> orders = line.get(price);
             for (Order order : orders.values()) {
                 if (party.equals(order.getKey().getParty())) {
-                    result.add(order);
+                    return price;
                 }
             }
-            if (!result.isEmpty()) {
-                break;
-            }
         }
-        return result;
+        throw new IllegalStateException(String.format("No prices found for side %s and party %s", side, party));
     }
     @NotNull
     public synchronized Order getBestAggregated(@NotNull Side side) {
