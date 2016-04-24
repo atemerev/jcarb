@@ -6,51 +6,41 @@ var book = {
     "type": "book"
 };
 
-function getScale(book, side, cutoff) {
-    var line = book[side];
-    var bestPrice = parseFloat(line[0][1]);
-    var cutoffPrice = ("bids" == side) ? bestPrice - cutoff : bestPrice + cutoff;
-    var topRange = ("bids" == side) ? -330 : 330;
-    return d3.scale.linear().domain([bestPrice, cutoffPrice]).range([0, topRange]);
+function getScale(book, cutoff) {
+    var bestBid = parseFloat(book["bids"][0][1]);
+    var bestAsk = parseFloat(book["asks"][0][1]);
+    var midPrice = (bestBid + bestAsk) / 2;
+    return d3.scale.linear().domain([midPrice - cutoff, midPrice + cutoff]).range([-320, 320]);
 }
 
 var Dashboard = React.createClass({
     displayName: 'CommentBox',
     render: function () {
-        var bidMarks = [];
-        var askMarks = [];
-        var scale = getScale(book, "bids", 5);
-        for (var i = 0; i < book.bids.length; i++) {
-            var order = book.bids[i];
+        var marks = [];
+        var scale = getScale(book, 5);
+        for (var i = 0; i < book.bids.length + book.asks.length - 1; i++) {
+            var order = i < book.bids.length ? book.bids[i] : book.asks[i - book.bids.length];
             var venue = order[0];
             var index = venue == "Kraken" ? 0 : 1; // todo fix
             var price = parseFloat(order[1]);
-            var amount = parseFloat(order[2]);
+            var side = i < book.bids.length ? "bids" : "asks";
+            // var amount = parseFloat(order[2]);
             var x = scale(price);
             var yOffset = index * 50;
-            if (x > -330) {
+            if (x > -320 && x < 320) {
                 var size = Math.max(1, Math.min(15, order[2] * 5));
-                bidMarks.push(<line x1={x} y1={yOffset-size} x2={x} y2={yOffset+size} className="bids"/>);
-            }
-        }
-        scale = getScale(book, "asks", 5);
-        for (i = 0; i < book.asks.length; i++) {
-            order = book.asks[i];
-            venue = order[0];
-            index = venue == "Kraken" ? 0 : 1; // todo fix
-            price = parseFloat(order[1]);
-            amount = parseFloat(order[2]);
-            x = scale(price);
-            yOffset = index * 50;
-            if (x < 330) {
-                size = Math.max(1, Math.min(15, order[2] * 5));
-                askMarks.push(<line x1={x} y1={yOffset-size} x2={x} y2={yOffset+size} className="asks"/>);
+                marks.push(<line x1={x} y1={yOffset-size} x2={x} y2={yOffset+size} className={side}/>);
             }
         }
         var venueTitles = [];
         for (i = 0; i < venues.length; i++) {
             venueTitles.push(<text x="0" y={i * 50}>{venues[i]}</text>);
         }
+        var bestBid = parseFloat(book["bids"][0][1]);
+        var bestAsk = parseFloat(book["asks"][0][1]);
+        var bestBidX = scale(bestBid) + 1;
+        var bestAskX = scale(bestAsk) - 1;
+        var spreadX = bestBidX - bestAskX;
         return (
 
             <svg id="main" viewBox="0 0 1000 700">
@@ -71,23 +61,22 @@ var Dashboard = React.createClass({
                         {venueTitles}
                     </g>
                     <g id="arb-zone">
-                        <rect x="-40" y="0" width="80" height="580" className="arb-fill"/>
-                        <line x1="-40" y1="0" x2="-40" y2="580" className="arb-ok"/>
-                        <line x1="40" y1="0" x2="40" y2="580" className="arb-ok"/>
+                        <rect x={bestAskX} y="0" width={spreadX} height="580" className="arb-fill"/>
+                        <line x1={bestAskX} y1="0" x2={bestAskX} y2="580" className="arb-ok"/>
+                        <line x1={bestBidX} y1="0" x2={bestBidX} y2="580" className="arb-ok"/>
                     </g>
                     <g id="order-book" transform="translate(0, 45)" className="orders">
-                        {bidMarks}
-                        {askMarks}
+                        {marks}
                     </g>
                 </g>
                 <g className="legend" transform="translate(50,40)">
-                    <text>BTC/USD Arb Vectors</text>
+                    <text>BTC/USD Arbitrage Spectra</text>
                 </g>
                 <g className="legend legend-time" transform="translate(950,40)">
                     <text>Sat Apr 23 17:46:32</text>
                 </g>
                 <g className="legend legend-arb-size" transform="translate(500,73)">
-                    <text>+1.273</text>
+                    <text>+{(bestBid - bestAsk).toFixed(3)}</text>
                 </g>
                 <script src="js/lib/react.js"></script>
                 <script src="js/lib/react-dom.js"></script>
