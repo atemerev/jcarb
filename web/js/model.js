@@ -40,10 +40,10 @@ OrderBook.prototype.add = function(order) {
     line.splice(Math.abs(insertPoint), 0, order);
 };
 
-OrderBook.prototype.delete = function(order) {
-    var line = "BID" == order.side ? this.bids : this.asks;
+OrderBook.prototype.delete = function(venue, side, orderId) {
+    var line = "BID" == side ? this.bids : this.asks;
     var index = line.findIndex(function(o) {
-        return order.side == o.side && order.venue == o.venue && order.orderId == o.orderId;
+        return side == o.side && venue == o.venue && orderId == o.orderId;
     });
     if (index >= 0) {
         line.splice(index, 1);
