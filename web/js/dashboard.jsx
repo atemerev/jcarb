@@ -1,4 +1,4 @@
-var venues = ["Kraken", "Coinbase"];
+var venues = ["Kraken", "Coinbase", "Gatecoin"];
 
 function getScale(book, cutoff) {
     var bestBid = parseFloat(book["bids"][0][1]);
@@ -33,15 +33,15 @@ var Dashboard = React.createClass({
         var scale = getScale(book, 5);
         for (var i = 0; i < book.bids.length + book.asks.length - 1; i++) {
             var order = i < book.bids.length ? book.bids[i] : book.asks[i - book.bids.length];
-            var venue = order[0];
-            var index = venue == "Kraken" ? 0 : 1; // todo fix
+            const venue = order[0];
+            var index = venues.findIndex(function(x, a, b) {return venue === x;});
             var price = parseFloat(order[1]);
-            var side = i < book.bids.length ? "bids" : "asks";
-            // var amount = parseFloat(order[2]);
+            var amount = parseFloat(order[2]);
             var x = scale(price);
-            var yOffset = index * 50;
-            if (x > -320 && x < 320) {
-                var size = Math.max(1, Math.min(15, order[2] * 5));
+            if (!amount.isNaN && x > -320 && x < 320) {
+                var side = i < book.bids.length ? "bids" : "asks";
+                var yOffset = index * 50;
+                var size = Math.max(1, Math.min(15, amount * 5));
                 marks.push(<line x1={x} y1={yOffset-size} x2={x} y2={yOffset+size} className={side}/>);
             }
         }
@@ -65,6 +65,7 @@ var Dashboard = React.createClass({
                         <line x1="-420" y1="0" x2="420" y2="0"/>
                         <line x1="-420" y1="50" x2="420" y2="50"/>
                         <line x1="-420" y1="100" x2="420" y2="100"/>
+                        <line x1="-420" y1="150" x2="420" y2="150"/>
                     </g>
                     <g id="vertical-grid" className="table-line">
                         <line x1="-330" y1="0" x2="-330" y2="580"/>

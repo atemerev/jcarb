@@ -1,6 +1,7 @@
 package com.miriamlaurel.jcarb;
 
 import com.miriamlaurel.jcarb.client.CoinbaseApi;
+import com.miriamlaurel.jcarb.client.GatecoinApi;
 import com.miriamlaurel.jcarb.client.KrakenApi;
 import com.miriamlaurel.jcarb.model.analysis.OrderBookMontage;
 import com.miriamlaurel.jcarb.model.asset.Instrument;
@@ -32,19 +33,6 @@ public class Main {
         Consumer<OrderBook> listener = book -> {
             montage.accept(book);
             OrderBook globalBook = montage.getGlobalBook();
-            Set<Order> bids = globalBook.getBest(Side.BID);
-            Set<Order> asks = globalBook.getBest(Side.ASK);
-            StringJoiner joiner = new StringJoiner(", ");
-            for (Order order : bids) {
-                joiner.add(order.toString());
-            }
-            String bidS = joiner.toString();
-            joiner = new StringJoiner(", ");
-            for (Order order : asks) {
-                joiner.add(order.toString());
-            }
-            String askS = joiner.toString();
-//            System.out.println(globalBook.getSpread() + " | " + bidS + " | " + askS);
             caster.broadcast(globalBook);
             if (pLong == null && globalBook.getSpread().compareTo(new BigDecimal(-0.5)) < 0) {
                 Order bestBid = globalBook.getBestAggregated(Side.BID);
@@ -55,13 +43,15 @@ public class Main {
                 System.out.println("!!!! Starting arbitrage !!!!");
             } else if (pLong != null) {
                 BigDecimal longPl = pLong.getProfitLoss(globalBook.getBestPrice(Side.BID, pLong.getParty()));
-                BigDecimal shortPl = pLong.getProfitLoss(globalBook.getBestPrice(Side.ASK, pShort.getParty()));
+                BigDecimal shortPl = pShort.getProfitLoss(globalBook.getBestPrice(Side.ASK, pShort.getParty()));
                 System.out.println("Profit/loss: " + longPl.add(shortPl));
             }
         };
         KrakenApi krakenApi = new KrakenApi(listener, 2);
         CoinbaseApi coinbaseApi = new CoinbaseApi(listener, 2);
+        GatecoinApi gatecoinApi = new GatecoinApi(listener, 2);
         krakenApi.subscribe(BTCUSD);
         coinbaseApi.subscribe(BTCUSD);
+        gatecoinApi.subscribe(BTCUSD);
     }
 }
