@@ -1,9 +1,6 @@
 package com.miriamlaurel.jcarb.client;
 
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import com.miriamlaurel.jcarb.common.StoppedException;
 import com.miriamlaurel.jcarb.model.asset.Instrument;
 import com.miriamlaurel.jcarb.model.order.*;
@@ -14,14 +11,14 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
-public class KrakenApi extends PollingTradingApi {
-
-    private static final int TASK_THREAD_POOL_SIZE = 16;
+public class KrakenApi extends HttpJsonTradingApi {
 
     private static final String ENDPOINT = "https://api.kraken.com/0/public/Depth";
     private static final Map<String, String> assetMap = new HashMap<>();
@@ -61,29 +58,23 @@ public class KrakenApi extends PollingTradingApi {
     }
 
     @Override
-    protected OrderBook getOrderBook(Instrument instrument) {
-        try {
-            OrderBook book = new OrderBook(instrument);
-            String ticker = instrumentToTicker(instrument);
-            String path = String.format("?pair=%s", ticker);
-            HttpResponse<JsonNode> response = Unirest.get(ENDPOINT + path).asJson();
-            JSONObject json = response.getBody().getObject().getJSONObject("result").getJSONObject(ticker);
-            JSONArray bidArray = json.getJSONArray("bids");
-            JSONArray askArray = json.getJSONArray("asks");
-            for (int i = 0; i < bidArray.length(); i++) {
-                JSONArray orderJson = bidArray.getJSONArray(i);
-                Order order = parseOrder(i, Side.BID, instrument, orderJson);
-                book.addOrder(order);
-            }
-            for (int i = 0; i < askArray.length(); i++) {
-                JSONArray orderJson = askArray.getJSONArray(i);
-                Order order = parseOrder(i, Side.ASK, instrument, orderJson);
-                book.addOrder(order);
-            }
-            return book;
-        } catch (UnirestException e) {
-            throw new RuntimeException(e);
+    protected OrderBook parseOrderBook(JSONObject json, Instrument instrument) {
+        OrderBook book = new OrderBook(instrument);
+        String ticker = instrumentToTicker(instrument);
+        JSONObject tickerJson = json.getJSONObject("result").getJSONObject(ticker);
+        JSONArray bidArray = tickerJson.getJSONArray("bids");
+        JSONArray askArray = tickerJson.getJSONArray("asks");
+        for (int i = 0; i < bidArray.length(); i++) {
+            JSONArray orderJson = bidArray.getJSONArray(i);
+            Order order = parseOrder(i, Side.BID, instrument, orderJson);
+            book.addOrder(order);
         }
+        for (int i = 0; i < askArray.length(); i++) {
+            JSONArray orderJson = askArray.getJSONArray(i);
+            Order order = parseOrder(i, Side.ASK, instrument, orderJson);
+            book.addOrder(order);
+        }
+        return book;
     }
 
     @NotNull
@@ -94,6 +85,17 @@ public class KrakenApi extends PollingTradingApi {
         String orderId = Integer.toString(count);
         OrderKey key = new OrderKey(orderId, Party.KRAKEN, instrument, side);
         return new Order(key, amount, price, timestamp);
+    }
+
+    @Override
+    protected URI instrumentToBookUri(Instrument instrument) {
+        String ticker = instrumentToTicker(instrument);
+        String path = String.format("?pair=%s", ticker);
+        try {
+            return new URI(ENDPOINT + path);
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private String instrumentToTicker(Instrument instrument) {

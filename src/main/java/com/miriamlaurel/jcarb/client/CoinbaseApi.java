@@ -1,22 +1,22 @@
 package com.miriamlaurel.jcarb.client;
 
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import com.miriamlaurel.jcarb.common.StoppedException;
 import com.miriamlaurel.jcarb.model.asset.Instrument;
 import com.miriamlaurel.jcarb.model.order.*;
 import com.miriamlaurel.jcarb.model.trading.Exec;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.Instant;
 import java.util.function.Consumer;
 
-public class CoinbaseApi extends PollingTradingApi {
+public class CoinbaseApi extends HttpJsonTradingApi {
 
     private static final String ENDPOINT = "https://api.exchange.coinbase.com";
     private static final int BOOK_LEVEL = 2;
@@ -41,30 +41,22 @@ public class CoinbaseApi extends PollingTradingApi {
         }
     }
 
-    @NotNull
-    public OrderBook getOrderBook(Instrument instrument) {
-        try {
-            OrderBook book = new OrderBook(instrument);
-            String ticker = instrumentToTicker(instrument);
-            String path = String.format("/products/%s/book?level=%d", ticker, BOOK_LEVEL);
-            HttpResponse<JsonNode> response = Unirest.get(ENDPOINT + path).asJson();
-            JsonNode json = response.getBody();
-            JSONArray bidArray = json.getObject().getJSONArray("bids");
-            JSONArray askArray = json.getObject().getJSONArray("asks");
-            for (int i = 0; i < bidArray.length(); i++) {
-                JSONArray orderJson = bidArray.getJSONArray(i);
-                Order order = parseOrder(i, Side.BID, instrument, orderJson);
-                book.addOrder(order);
-            }
-            for (int i = 0; i < askArray.length(); i++) {
-                JSONArray orderJson = askArray.getJSONArray(i);
-                Order order = parseOrder(i, Side.ASK, instrument, orderJson);
-                book.addOrder(order);
-            }
-            return book;
-        } catch (UnirestException e) {
-            throw new RuntimeException(e);
+    @Override
+    protected OrderBook parseOrderBook(JSONObject json, Instrument instrument) {
+        OrderBook book = new OrderBook(instrument);
+        JSONArray bidArray = json.getJSONArray("bids");
+        JSONArray askArray = json.getJSONArray("asks");
+        for (int i = 0; i < bidArray.length(); i++) {
+            JSONArray orderJson = bidArray.getJSONArray(i);
+            Order order = parseOrder(i, Side.BID, instrument, orderJson);
+            book.addOrder(order);
         }
+        for (int i = 0; i < askArray.length(); i++) {
+            JSONArray orderJson = askArray.getJSONArray(i);
+            Order order = parseOrder(i, Side.ASK, instrument, orderJson);
+            book.addOrder(order);
+        }
+        return book;
     }
 
     @Override
@@ -81,7 +73,14 @@ public class CoinbaseApi extends PollingTradingApi {
         return new Order(key, amount, price, Instant.now());
     }
 
-    private String instrumentToTicker(Instrument instrument) {
-        return instrument.getPrimary() + "-" + instrument.getSecondary();
+    @Override
+    protected URI instrumentToBookUri(Instrument instrument) {
+        try {
+            String ticker = instrument.getPrimary() + "-" + instrument.getSecondary();
+            String path = String.format("/products/%s/book?level=%d", ticker, BOOK_LEVEL);
+            return new URI(ENDPOINT + path);
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

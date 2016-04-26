@@ -1,7 +1,6 @@
 package com.miriamlaurel.jcarb.client;
 
 import com.miriamlaurel.jcarb.common.Mortal;
-import com.miriamlaurel.jcarb.common.StoppedException;
 import com.miriamlaurel.jcarb.model.asset.Instrument;
 import com.miriamlaurel.jcarb.model.order.OrderBook;
 
@@ -35,6 +34,8 @@ public abstract class PollingTradingApi implements TradingApi, Mortal {
                             }
                             if (exception != null) {
                                 onTermination(exception);
+                                // todo delegate restarts to monitoring
+                                scheduler.schedule(fetchMarketDataTask, pollIntervalSeconds, TimeUnit.SECONDS);
                             }
                         }));
                 CompletableFuture[] futureArray = futures.toArray(CompletableFuture[]::new);

@@ -11,6 +11,7 @@ import com.miriamlaurel.jcarb.model.portfolio.Position;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.net.InetSocketAddress;
 import java.time.Instant;
 import java.util.Set;
 import java.util.StringJoiner;
@@ -24,6 +25,10 @@ public class Main {
     private static Position pShort = null;
 
     public static void main(String[] args) throws IOException {
+
+        Broadcaster caster = new Broadcaster(new InetSocketAddress(9999));
+        caster.start();
+
         Consumer<OrderBook> listener = book -> {
             montage.accept(book);
             OrderBook globalBook = montage.getGlobalBook();
@@ -39,7 +44,8 @@ public class Main {
                 joiner.add(order.toString());
             }
             String askS = joiner.toString();
-            System.out.println(globalBook.getSpread() + " | " + bidS + " | " + askS);
+//            System.out.println(globalBook.getSpread() + " | " + bidS + " | " + askS);
+            caster.broadcast(globalBook);
             if (pLong == null && globalBook.getSpread().compareTo(new BigDecimal(-0.5)) < 0) {
                 Order bestBid = globalBook.getBestAggregated(Side.BID);
                 Order bestAsk = globalBook.getBestAggregated(Side.ASK);
