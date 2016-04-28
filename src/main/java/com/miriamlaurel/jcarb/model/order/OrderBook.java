@@ -2,6 +2,7 @@ package com.miriamlaurel.jcarb.model.order;
 
 import com.miriamlaurel.jcarb.common.JsonSerializable;
 import com.miriamlaurel.jcarb.model.asset.Instrument;
+import com.miriamlaurel.jcarb.model.order.op.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONArray;
@@ -9,9 +10,11 @@ import org.json.JSONObject;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.function.Consumer;
 
-public class OrderBook implements JsonSerializable {
+public class OrderBook implements JsonSerializable, Consumer<OrderOp> {
 
+    private int seq = 0;
     private final Instrument instrument;
     private final TreeMap<BigDecimal, Map<OrderKey, Order>> bids = new TreeMap<>(Comparator.reverseOrder());
     private final TreeMap<BigDecimal, Map<OrderKey, Order>> asks = new TreeMap<>();
@@ -63,6 +66,23 @@ public class OrderBook implements JsonSerializable {
         }
     }
 
+    public synchronized void accept(OrderOp op) {
+        if (op instanceof AddOrder) {
+            AddOrder add = (AddOrder) op;
+            addOrder(add.getOrder());
+        } else if (op instanceof DeleteOrder) {
+            DeleteOrder delete = (DeleteOrder) op;
+            removeOrder(delete.getKey());
+        } else if (op instanceof ChangeOrder) {
+            ChangeOrder change = (ChangeOrder) op;
+            removeOrder(change.getOrder().getKey());
+            addOrder(change.getOrder());
+        } else if (op instanceof ReplaceParty) {
+            ReplaceParty replace = (ReplaceParty) op;
+            replaceParty(replace.getParty(), replace.getPartyBook());
+        }
+    }
+
     @Nullable
     public synchronized Order getOrderByKey(@NotNull OrderKey key) {
         return byKey.get(key);
@@ -91,6 +111,7 @@ public class OrderBook implements JsonSerializable {
             sj.add(order.getKey().getOrderId());
             party = order.getKey().getParty();
         }
+        assert party != null;
         OrderKey key = new OrderKey(sj.toString(), party, instrument, side);
         return new Order(key, totalAmount, price);
     }
@@ -127,6 +148,7 @@ public class OrderBook implements JsonSerializable {
         }
         throw new IllegalStateException(String.format("No prices found for side %s and party %s", side, party));
     }
+
     @NotNull
     public synchronized Order getBestAggregated(@NotNull Side side) {
         return getOrderByPriceAggregated(side, getBestPrice(side));
@@ -139,10 +161,11 @@ public class OrderBook implements JsonSerializable {
                         party, theirKey.getParty()));
             }
             removeByParty(party);
-            for (Order order : theirBook.byKey.values()) {
-                addOrder(order);
-            }
         }
+        for (Order order : theirBook.byKey.values()) {
+            addOrder(order);
+        }
+
     }
 
     public synchronized void removeByParty(Party party) {
@@ -191,7 +214,9 @@ public class OrderBook implements JsonSerializable {
             }
         }
         builder.append("↑↑↑ BIDS ↑↑↑\n");
-        builder.append(String.format("-- (%s) --\n", getSpread().stripTrailingZeros()));
+        if (!bids.isEmpty() && !asks.isEmpty()) {
+            builder.append(String.format("-- (%s) --\n", getSpread().stripTrailingZeros()));
+        }
         builder.append("↓↓↓ ASKS ↓↓↓\n");
         for (BigDecimal price : asks.navigableKeySet()) {
             for (Order order : asks.get(price).values()) {
@@ -230,6 +255,14 @@ public class OrderBook implements JsonSerializable {
         result.put("bids", bidArray);
         result.put("asks", askArray);
         return result;
+    }
+
+    public synchronized int getSeq() {
+        return seq;
+    }
+
+    public synchronized void setSeq(int seq) {
+        this.seq = seq;
     }
 
     private JSONArray orderToJson(Order order) {

@@ -1,6 +1,9 @@
 package com.miriamlaurel.jcarb.client;
 
+import com.mashape.unirest.http.HttpResponse;
+import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
+import com.mashape.unirest.http.exceptions.UnirestException;
 import com.miriamlaurel.jcarb.common.StoppedException;
 import com.miriamlaurel.jcarb.model.asset.Instrument;
 import com.miriamlaurel.jcarb.model.order.*;
@@ -15,10 +18,11 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Instant;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class CoinbaseApi extends HttpJsonTradingApi {
 
-    private static final String ENDPOINT = "https://api.exchange.coinbase.com";
+    static final String ENDPOINT = "https://api.exchange.coinbase.com";
     private static final int BOOK_LEVEL = 2;
 
     public CoinbaseApi(Consumer<OrderBook> orderBookListener, int pollIntervalSeconds) {
@@ -43,6 +47,10 @@ public class CoinbaseApi extends HttpJsonTradingApi {
 
     @Override
     protected OrderBook parseOrderBook(JSONObject json, Instrument instrument) {
+        return parseBook(json, instrument);
+    }
+
+    static OrderBook parseBook(JSONObject json, Instrument instrument) {
         OrderBook book = new OrderBook(instrument);
         JSONArray bidArray = json.getJSONArray("bids");
         JSONArray askArray = json.getJSONArray("asks");
@@ -65,7 +73,7 @@ public class CoinbaseApi extends HttpJsonTradingApi {
     }
 
     @NotNull
-    private Order parseOrder(int count, Side side, Instrument instrument, JSONArray orderJson) {
+    static Order parseOrder(int count, Side side, Instrument instrument, JSONArray orderJson) {
         BigDecimal price = new BigDecimal(orderJson.getString(0));
         BigDecimal amount = new BigDecimal(orderJson.getString(1));
         String orderId = Integer.toString(count);

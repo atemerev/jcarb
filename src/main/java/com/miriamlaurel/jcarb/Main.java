@@ -1,39 +1,33 @@
 package com.miriamlaurel.jcarb;
 
-import com.miriamlaurel.jcarb.client.CoinbaseApi;
-import com.miriamlaurel.jcarb.client.GatecoinApi;
-import com.miriamlaurel.jcarb.client.KrakenApi;
-import com.miriamlaurel.jcarb.model.analysis.OrderBookMontage;
+import com.miriamlaurel.jcarb.client.CoinbaseWsApi;
 import com.miriamlaurel.jcarb.model.asset.Instrument;
 import com.miriamlaurel.jcarb.model.order.Order;
 import com.miriamlaurel.jcarb.model.order.OrderBook;
 import com.miriamlaurel.jcarb.model.order.Side;
+import com.miriamlaurel.jcarb.model.order.op.AddOrder;
+import com.miriamlaurel.jcarb.model.order.op.OrderOp;
 import com.miriamlaurel.jcarb.model.portfolio.Position;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.InetSocketAddress;
 import java.time.Instant;
-import java.util.Set;
-import java.util.StringJoiner;
 import java.util.function.Consumer;
 
 public class Main {
 
     private static final Instrument BTCUSD = Instrument.fromCode("BTC/USD");
-    private static final OrderBookMontage montage = new OrderBookMontage(BTCUSD);
-    private static Position pLong = null;
-    private static Position pShort = null;
+
 
     public static void main(String[] args) throws IOException {
 
-        Broadcaster caster = new Broadcaster(new InetSocketAddress(9999));
-        caster.start();
+        Broadcaster broadcaster = new Broadcaster(new InetSocketAddress(9999));
+        broadcaster.start();
 
+/*
         Consumer<OrderBook> listener = book -> {
-            montage.accept(book);
-            OrderBook globalBook = montage.getGlobalBook();
-            caster.broadcast(globalBook);
+            broadcaster.broadcast(globalBook);
             if (pLong == null && globalBook.getSpread().compareTo(new BigDecimal(-0.5)) < 0) {
                 Order bestBid = globalBook.getBestAggregated(Side.BID);
                 Order bestAsk = globalBook.getBestAggregated(Side.ASK);
@@ -47,11 +41,8 @@ public class Main {
                 System.out.println("Profit/loss: " + longPl.add(shortPl));
             }
         };
-        KrakenApi krakenApi = new KrakenApi(listener, 2);
-        CoinbaseApi coinbaseApi = new CoinbaseApi(listener, 2);
-        GatecoinApi gatecoinApi = new GatecoinApi(listener, 2);
-        krakenApi.subscribe(BTCUSD);
-        coinbaseApi.subscribe(BTCUSD);
-        gatecoinApi.subscribe(BTCUSD);
+*/
+
+        CoinbaseWsApi coinbaseApi = new CoinbaseWsApi(BTCUSD, broadcaster);
     }
 }

@@ -18,7 +18,7 @@ var Dashboard = React.createClass({
             "type": "book"
         }};
 */
-        return new OrderBook("BTC/USD");
+        return {"book": new OrderBook("BTC/USD")};
     },
 
     componentDidMount: function() {
@@ -56,12 +56,12 @@ var Dashboard = React.createClass({
                     }
                 }
                 for (i = 0; i < msg.bids.length; i++) {
-                    o = msg[i];
+                    o = msg.bids[i];
                     order = new Order(msg.venue, o.orderId, book.instrument, "BID", o.price, o.amount);
                     book.add(order);
                 }
                 for (i = 0; i < msg.asks.length; i++) {
-                    o = msg[i];
+                    o = msg.asks[i];
                     order = new Order(msg.venue, o.orderId, book.instrument, "ASK", o.price, o.amount);
                     book.add(order);
                 }
@@ -73,29 +73,36 @@ var Dashboard = React.createClass({
     render: function () {
         var book = this.state.book;
         var marks = [];
-        var scale = getScale(book, 5);
-        for (var i = 0; i < book.bids.length + book.asks.length - 1; i++) {
-            var order = i < book.bids.length ? book.bids[i] : book.asks[i - book.bids.length];
-            const venue = order[0];
-            var index = venues.findIndex(function(x, a, b) {return venue === x;});
-            var price = parseFloat(order[1]);
-            var amount = parseFloat(order[2]);
-            var x = scale(price);
-            if (!amount.isNaN && x > -320 && x < 320) {
-                var side = i < book.bids.length ? "bids" : "asks";
-                var yOffset = index * 50;
-                var size = Math.max(1, Math.min(15, amount * 5));
-                marks.push(<line x1={x} y1={yOffset-size} x2={x} y2={yOffset+size} className={side}/>);
-            }
-        }
         var venueTitles = [];
         for (i = 0; i < venues.length; i++) {
             venueTitles.push(<text x="0" y={i * 50}>{venues[i]}</text>);
         }
-        var bestBid = parseFloat(book["bids"][0][1]);
-        var bestAsk = parseFloat(book["asks"][0][1]);
-        var bestBidX = scale(bestBid) + 1;
-        var bestAskX = scale(bestAsk) - 1;
+        var bestBid = 0;
+        var bestAsk = 0;
+        var bestBidX = 0;
+        var bestAskX = 0;
+
+        if (book.asks.length > 0 && book.bids.length > 0) {
+            var scale = getScale(book, 5);
+            for (var i = 0; i < book.bids.length + book.asks.length - 1; i++) {
+                var order = i < book.bids.length ? book.bids[i] : book.asks[i - book.bids.length];
+                const venue = order[0];
+                var index = venues.findIndex(function(x, a, b) {return venue === x;});
+                var price = parseFloat(order[1]);
+                var amount = parseFloat(order[2]);
+                var x = scale(price);
+                if (!amount.isNaN && x > -320 && x < 320) {
+                    var side = i < book.bids.length ? "bids" : "asks";
+                    var yOffset = index * 50;
+                    var size = Math.max(1, Math.min(15, amount * 5));
+                    marks.push(<line x1={x} y1={yOffset-size} x2={x} y2={yOffset+size} className={side}/>);
+                }
+            }
+            bestBid = parseFloat(book["bids"][0][1]);
+            bestAsk = parseFloat(book["asks"][0][1]);
+            bestBidX = scale(bestBid) + 1;
+            bestAskX = scale(bestAsk) - 1;
+        }
         var spreadX = bestBidX - bestAskX;
         return (
 
